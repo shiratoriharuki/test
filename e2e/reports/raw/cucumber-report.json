@@ -1,0 +1,877 @@
+[
+  {
+    "description": "",
+    "elements": [
+      {
+        "description": "",
+        "id": "req-uc003-勤務時間入力;未来日付の勤務時間を入力する",
+        "keyword": "シナリオ",
+        "line": 34,
+        "name": "未来日付の勤務時間を入力する",
+        "steps": [
+          {
+            "keyword": "Before",
+            "hidden": true,
+            "result": {
+              "status": "passed",
+              "duration": 631077093
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "前提",
+            "line": 7,
+            "name": "従業員がシステムにアクセスしている",
+            "match": {
+              "location": "features/step_definitions/req-uc001-system-startup.steps.ts:72"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 730022362
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "かつ",
+            "line": 8,
+            "name": "メイン画面が表示されている",
+            "match": {
+              "location": "features/step_definitions/req-uc001-system-startup.steps.ts:77"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 117697859
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "前提",
+            "line": 35,
+            "name": "従業員が未来の日付を選択している",
+            "match": {
+              "location": "features/step_definitions/req-uc003-work-time-input.steps.ts:103"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 1084216576
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "もし",
+            "line": 36,
+            "name": "従業員が出勤時刻 \"09:00\" を入力する",
+            "match": {
+              "location": "features/step_definitions/req-uc003-work-time-input.steps.ts:121"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 23856560
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "かつ",
+            "line": 37,
+            "name": "従業員が退勤時刻 \"18:00\" を入力する",
+            "match": {
+              "location": "features/step_definitions/req-uc003-work-time-input.steps.ts:125"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 17617084
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "かつ",
+            "line": 38,
+            "name": "従業員が保存ボタンをクリックする",
+            "match": {
+              "location": "features/step_definitions/req-uc003-work-time-input.steps.ts:129"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 116420001
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "ならば",
+            "line": 39,
+            "name": "勤怠情報が正常に保存される",
+            "match": {
+              "location": "features/step_definitions/req-uc003-work-time-input.steps.ts:142"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 101806707
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "かつ",
+            "line": 40,
+            "name": "保存成功メッセージが表示される",
+            "match": {
+              "location": "features/step_definitions/req-uc003-work-time-input.steps.ts:152"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 7669774
+            }
+          },
+          {
+            "keyword": "After",
+            "hidden": true,
+            "result": {
+              "status": "passed",
+              "duration": 91996415
+            }
+          }
+        ],
+        "tags": [
+          {
+            "name": "@REQ-UC003",
+            "line": 3
+          },
+          {
+            "name": "@e2e",
+            "line": 3
+          },
+          {
+            "name": "@attendance",
+            "line": 3
+          }
+        ],
+        "type": "scenario"
+      },
+      {
+        "description": "",
+        "id": "req-uc003-勤務時間入力;出勤時刻が退勤時刻より後の場合にエラーが表示される",
+        "keyword": "シナリオ",
+        "line": 18,
+        "name": "出勤時刻が退勤時刻より後の場合にエラーが表示される",
+        "steps": [
+          {
+            "keyword": "Before",
+            "hidden": true,
+            "result": {
+              "status": "passed",
+              "duration": 139103943
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "前提",
+            "line": 7,
+            "name": "従業員がシステムにアクセスしている",
+            "match": {
+              "location": "features/step_definitions/req-uc001-system-startup.steps.ts:72"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 643734519
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "かつ",
+            "line": 8,
+            "name": "メイン画面が表示されている",
+            "match": {
+              "location": "features/step_definitions/req-uc001-system-startup.steps.ts:77"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 69120671
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "前提",
+            "line": 19,
+            "name": "従業員が日付 \"2025-01-15\" を選択している",
+            "match": {
+              "location": "features/step_definitions/req-uc003-work-time-input.steps.ts:99"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 1348365639
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "もし",
+            "line": 20,
+            "name": "従業員が出勤時刻 \"18:00\" を入力する",
+            "match": {
+              "location": "features/step_definitions/req-uc003-work-time-input.steps.ts:121"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 13250431
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "かつ",
+            "line": 21,
+            "name": "従業員が退勤時刻 \"09:00\" を入力する",
+            "match": {
+              "location": "features/step_definitions/req-uc003-work-time-input.steps.ts:125"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 11995433
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "かつ",
+            "line": 22,
+            "name": "従業員が保存ボタンをクリックする",
+            "match": {
+              "location": "features/step_definitions/req-uc003-work-time-input.steps.ts:129"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 73308453
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "ならば",
+            "line": 23,
+            "name": "バリデーションエラーが表示される",
+            "match": {
+              "location": "features/step_definitions/req-uc003-work-time-input.steps.ts:156"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 12179065
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "かつ",
+            "line": 24,
+            "name": "エラーメッセージに \"出勤時刻は退勤時刻より前である必要があります\" が含まれる",
+            "match": {
+              "location": "features/step_definitions/req-uc003-work-time-input.steps.ts:160"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 16079817
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "かつ",
+            "line": 25,
+            "name": "勤怠情報が保存されない",
+            "match": {
+              "location": "features/step_definitions/req-uc003-work-time-input.steps.ts:164"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 18614922
+            }
+          },
+          {
+            "keyword": "After",
+            "hidden": true,
+            "result": {
+              "status": "passed",
+              "duration": 65021304
+            }
+          }
+        ],
+        "tags": [
+          {
+            "name": "@REQ-UC003",
+            "line": 3
+          },
+          {
+            "name": "@e2e",
+            "line": 3
+          },
+          {
+            "name": "@attendance",
+            "line": 3
+          }
+        ],
+        "type": "scenario"
+      },
+      {
+        "description": "",
+        "id": "req-uc003-勤務時間入力;従業員が正常に勤務時間を入力する",
+        "keyword": "シナリオ",
+        "line": 10,
+        "name": "従業員が正常に勤務時間を入力する",
+        "steps": [
+          {
+            "keyword": "Before",
+            "hidden": true,
+            "result": {
+              "status": "passed",
+              "duration": 123446804
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "前提",
+            "line": 7,
+            "name": "従業員がシステムにアクセスしている",
+            "match": {
+              "location": "features/step_definitions/req-uc001-system-startup.steps.ts:72"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 602664493
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "かつ",
+            "line": 8,
+            "name": "メイン画面が表示されている",
+            "match": {
+              "location": "features/step_definitions/req-uc001-system-startup.steps.ts:77"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 36985194
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "前提",
+            "line": 11,
+            "name": "従業員が日付 \"2025-01-15\" を選択している",
+            "match": {
+              "location": "features/step_definitions/req-uc003-work-time-input.steps.ts:99"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 1249063419
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "もし",
+            "line": 12,
+            "name": "従業員が出勤時刻 \"09:00\" を入力する",
+            "match": {
+              "location": "features/step_definitions/req-uc003-work-time-input.steps.ts:121"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 11393008
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "かつ",
+            "line": 13,
+            "name": "従業員が退勤時刻 \"18:00\" を入力する",
+            "match": {
+              "location": "features/step_definitions/req-uc003-work-time-input.steps.ts:125"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 18489513
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "かつ",
+            "line": 14,
+            "name": "従業員が保存ボタンをクリックする",
+            "match": {
+              "location": "features/step_definitions/req-uc003-work-time-input.steps.ts:129"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 74267776
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "ならば",
+            "line": 15,
+            "name": "勤怠情報が正常に保存される",
+            "match": {
+              "location": "features/step_definitions/req-uc003-work-time-input.steps.ts:142"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 103364817
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "かつ",
+            "line": 16,
+            "name": "保存成功メッセージが表示される",
+            "match": {
+              "location": "features/step_definitions/req-uc003-work-time-input.steps.ts:152"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 7904278
+            }
+          },
+          {
+            "keyword": "After",
+            "hidden": true,
+            "result": {
+              "status": "passed",
+              "duration": 51376599
+            }
+          }
+        ],
+        "tags": [
+          {
+            "name": "@REQ-UC003",
+            "line": 3
+          },
+          {
+            "name": "@e2e",
+            "line": 3
+          },
+          {
+            "name": "@attendance",
+            "line": 3
+          }
+        ],
+        "type": "scenario"
+      },
+      {
+        "description": "",
+        "id": "req-uc003-勤務時間入力;既存の勤怠レコードを更新する",
+        "keyword": "シナリオ",
+        "line": 42,
+        "name": "既存の勤怠レコードを更新する",
+        "steps": [
+          {
+            "keyword": "Before",
+            "hidden": true,
+            "result": {
+              "status": "passed",
+              "duration": 119048946
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "前提",
+            "line": 7,
+            "name": "従業員がシステムにアクセスしている",
+            "match": {
+              "location": "features/step_definitions/req-uc001-system-startup.steps.ts:72"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 597890246
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "かつ",
+            "line": 8,
+            "name": "メイン画面が表示されている",
+            "match": {
+              "location": "features/step_definitions/req-uc001-system-startup.steps.ts:77"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 33890851
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "前提",
+            "line": 43,
+            "name": "従業員 \"EMP001\" が日付 \"2025-01-15\" に勤怠レコードを登録済みである",
+            "match": {
+              "location": "features/step_definitions/req-uc003-work-time-input.steps.ts:109"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 19050557
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "かつ",
+            "line": 44,
+            "name": "従業員が日付 \"2025-01-15\" を選択している",
+            "match": {
+              "location": "features/step_definitions/req-uc003-work-time-input.steps.ts:99"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 1309998000
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "もし",
+            "line": 45,
+            "name": "従業員が出勤時刻 \"08:30\" を入力する",
+            "match": {
+              "location": "features/step_definitions/req-uc003-work-time-input.steps.ts:121"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 16100217
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "かつ",
+            "line": 46,
+            "name": "従業員が退勤時刻 \"17:30\" を入力する",
+            "match": {
+              "location": "features/step_definitions/req-uc003-work-time-input.steps.ts:125"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 18825665
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "かつ",
+            "line": 47,
+            "name": "従業員が保存ボタンをクリックする",
+            "match": {
+              "location": "features/step_definitions/req-uc003-work-time-input.steps.ts:129"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 70262973
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "ならば",
+            "line": 48,
+            "name": "既存の勤怠レコードが更新される",
+            "match": {
+              "location": "features/step_definitions/req-uc003-work-time-input.steps.ts:181"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 61354445
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "かつ",
+            "line": 49,
+            "name": "保存成功メッセージが表示される",
+            "match": {
+              "location": "features/step_definitions/req-uc003-work-time-input.steps.ts:152"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 9236433
+            }
+          },
+          {
+            "keyword": "After",
+            "hidden": true,
+            "result": {
+              "status": "passed",
+              "duration": 71658668
+            }
+          }
+        ],
+        "tags": [
+          {
+            "name": "@REQ-UC003",
+            "line": 3
+          },
+          {
+            "name": "@e2e",
+            "line": 3
+          },
+          {
+            "name": "@attendance",
+            "line": 3
+          }
+        ],
+        "type": "scenario"
+      },
+      {
+        "description": "",
+        "id": "req-uc003-勤務時間入力;無効な時刻形式を入力した場合にエラーが表示される",
+        "keyword": "シナリオ",
+        "line": 27,
+        "name": "無効な時刻形式を入力した場合にエラーが表示される",
+        "steps": [
+          {
+            "keyword": "Before",
+            "hidden": true,
+            "result": {
+              "status": "passed",
+              "duration": 240156578
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "前提",
+            "line": 7,
+            "name": "従業員がシステムにアクセスしている",
+            "match": {
+              "location": "features/step_definitions/req-uc001-system-startup.steps.ts:72"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 623763601
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "かつ",
+            "line": 8,
+            "name": "メイン画面が表示されている",
+            "match": {
+              "location": "features/step_definitions/req-uc001-system-startup.steps.ts:77"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 51238606
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "前提",
+            "line": 28,
+            "name": "従業員が日付 \"2025-01-15\" を選択している",
+            "match": {
+              "location": "features/step_definitions/req-uc003-work-time-input.steps.ts:99"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 1287549049
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "もし",
+            "line": 29,
+            "name": "従業員が出勤時刻 \"25:00\" を入力する",
+            "match": {
+              "location": "features/step_definitions/req-uc003-work-time-input.steps.ts:121"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 14235752
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "かつ",
+            "line": 30,
+            "name": "従業員が保存ボタンをクリックする",
+            "match": {
+              "location": "features/step_definitions/req-uc003-work-time-input.steps.ts:129"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 64241976
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "ならば",
+            "line": 31,
+            "name": "バリデーションエラーが表示される",
+            "match": {
+              "location": "features/step_definitions/req-uc003-work-time-input.steps.ts:156"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 3445919
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "かつ",
+            "line": 32,
+            "name": "エラーメッセージに \"有効な時刻形式で入力してください\" が含まれる",
+            "match": {
+              "location": "features/step_definitions/req-uc003-work-time-input.steps.ts:160"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 9777604
+            }
+          },
+          {
+            "keyword": "After",
+            "hidden": true,
+            "result": {
+              "status": "passed",
+              "duration": 33896684
+            }
+          }
+        ],
+        "tags": [
+          {
+            "name": "@REQ-UC003",
+            "line": 3
+          },
+          {
+            "name": "@e2e",
+            "line": 3
+          },
+          {
+            "name": "@attendance",
+            "line": 3
+          }
+        ],
+        "type": "scenario"
+      },
+      {
+        "description": "",
+        "id": "req-uc003-勤務時間入力;保存した勤怠レコードを取得する",
+        "keyword": "シナリオ",
+        "line": 51,
+        "name": "保存した勤怠レコードを取得する",
+        "steps": [
+          {
+            "keyword": "Before",
+            "hidden": true,
+            "result": {
+              "status": "passed",
+              "duration": 111970118
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "前提",
+            "line": 7,
+            "name": "従業員がシステムにアクセスしている",
+            "match": {
+              "location": "features/step_definitions/req-uc001-system-startup.steps.ts:72"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 587595111
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "かつ",
+            "line": 8,
+            "name": "メイン画面が表示されている",
+            "match": {
+              "location": "features/step_definitions/req-uc001-system-startup.steps.ts:77"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 34431948
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "前提",
+            "line": 52,
+            "name": "従業員 \"EMP001\" が日付 \"2025-01-15\" に勤怠レコードを登録している",
+            "match": {
+              "location": "features/step_definitions/req-uc003-work-time-input.steps.ts:115"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 26210204
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "もし",
+            "line": 53,
+            "name": "システムが従業員 \"EMP001\" の日付 \"2025-01-15\" の勤怠レコードを取得する",
+            "match": {
+              "location": "features/step_definitions/req-uc003-work-time-input.steps.ts:135"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 17147843
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "ならば",
+            "line": 54,
+            "name": "勤怠レコードが正常に取得される",
+            "match": {
+              "location": "features/step_definitions/req-uc003-work-time-input.steps.ts:192"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 1259743
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "かつ",
+            "line": 55,
+            "name": "レコードに出勤時刻と退勤時刻が含まれる",
+            "match": {
+              "location": "features/step_definitions/req-uc003-work-time-input.steps.ts:196"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 2838060
+            }
+          },
+          {
+            "keyword": "After",
+            "hidden": true,
+            "result": {
+              "status": "passed",
+              "duration": 41964719
+            }
+          }
+        ],
+        "tags": [
+          {
+            "name": "@REQ-UC003",
+            "line": 3
+          },
+          {
+            "name": "@e2e",
+            "line": 3
+          },
+          {
+            "name": "@attendance",
+            "line": 3
+          }
+        ],
+        "type": "scenario"
+      }
+    ],
+    "id": "req-uc003-勤務時間入力",
+    "line": 4,
+    "keyword": "機能",
+    "name": "REQ-UC003 勤務時間入力",
+    "tags": [
+      {
+        "name": "@REQ-UC003",
+        "line": 3
+      },
+      {
+        "name": "@e2e",
+        "line": 3
+      },
+      {
+        "name": "@attendance",
+        "line": 3
+      }
+    ],
+    "uri": "features/REQ-UC003-勤務時間入力.feature"
+  }
+]
