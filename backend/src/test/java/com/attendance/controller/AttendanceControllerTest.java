@@ -14,8 +14,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -63,6 +67,80 @@ class AttendanceControllerTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.employeeId").value("EMP001"))
             .andExpect(jsonPath("$.clockInTime").value("09:00:00"));
+    }
+
+    @Test
+    void deletesLeaveAndReturnsNoContent() throws Exception {
+        doNothing().when(attendanceService).deleteLeave("EMP001", "2025-01-15");
+
+        mockMvc.perform(delete("/api/attendance/EMP001/2025-01-15"))
+            .andExpect(status().isNoContent())
+            .andExpect(jsonPath("$").doesNotExist());
+    }
+
+    @Test
+    void savesLeaveAndReturnsNullTimes() throws Exception {
+        when(attendanceService.saveAttendance(any())).thenReturn(new AttendanceResponse(
+                2L, "EMP001", "2025-01-15", null, null, "PERSONAL_LEAVE", null,
+                "2025-01-15T09:00:00", "2025-01-15T09:00:00"));
+
+        mockMvc.perform(post("/api/attendance")
+                        .contentType("application/json")
+                        .content("""
+                            {"employeeId":"EMP001","attendanceDate":"2025-01-15","clockInTime":null,"clockOutTime":null,"status":"PERSONAL_LEAVE","notes":null}
+                            """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("PERSONAL_LEAVE"))
+                .andExpect(jsonPath("$.clockInTime").value(nullValue()))
+                .andExpect(jsonPath("$.clockOutTime").value(nullValue()))
+                .andExpect(jsonPath("$.notes").value(nullValue()));
+    }
+
+    @Test
+    void returnsConflictWhenLeaveWouldReplaceWorkRecord() throws Exception {
+        when(attendanceService.saveAttendance(any())).thenThrow(new AttendanceApiException(
+                HttpStatus.CONFLICT,
+                "WORK_RECORD_CONFLICT",
+                "対象日に勤務記録が存在するため、休暇として登録できません",
+                Map.of("employeeId", "EMP001", "attendanceDate", "2025-01-15")));
+
+        mockMvc.perform(post("/api/attendance")
+                        .contentType("application/json")
+                        .content("""
+                            {"employeeId":"EMP001","attendanceDate":"2025-01-15","status":"SICK_LEAVE","clockInTime":null,"clockOutTime":null}
+                            """))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error").value("WORK_RECORD_CONFLICT"))
+                .andExpect(jsonPath("$.details.employeeId").value("EMP001"));
+    }
+
+    @Test
+    void returnsNotFoundWhenDeletingMissingLeave() throws Exception {
+        doThrow(new AttendanceApiException(
+                HttpStatus.NOT_FOUND,
+                "NOT_FOUND",
+                "休暇レコードが見つかりません。最新の状態を確認してください",
+                Map.of("employeeId", "EMP001", "date", "2025-01-15")))
+                .when(attendanceService).deleteLeave("EMP001", "2025-01-15");
+
+        mockMvc.perform(delete("/api/attendance/EMP001/2025-01-15"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error").value("NOT_FOUND"));
+    }
+
+    @Test
+    void returnsConflictWhenDeletingNonLeaveRecord() throws Exception {
+        doThrow(new AttendanceApiException(
+                HttpStatus.CONFLICT,
+                "ATTENDANCE_RECORD_CONFLICT",
+                "対象レコードは休暇ではないため削除できません",
+                Map.of("employeeId", "EMP001", "date", "2025-01-15", "status", "WORK")))
+                .when(attendanceService).deleteLeave("EMP001", "2025-01-15");
+
+        mockMvc.perform(delete("/api/attendance/EMP001/2025-01-15"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error").value("ATTENDANCE_RECORD_CONFLICT"))
+                .andExpect(jsonPath("$.details.status").value("WORK"));
     }
 
     @Test

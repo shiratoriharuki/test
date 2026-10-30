@@ -129,7 +129,13 @@ When('従業員が退勤時刻 {string} を入力する', async function (this: 
 When('従業員が保存ボタンをクリックする', async function (this: World) {
   const before = await getAttendance(this, getSelectedDate(this));
   this.context.attendanceBeforeSave = before.status() === 200 ? await before.json() : null;
-  await this.page.getByTestId('btn-save').click();
+  const saveButton = this.context.isLeaveFlow
+    ? this.page.getByTestId('btn-save-leave')
+    : this.page.getByTestId('btn-save');
+  await saveButton.click();
+  if (this.context.isLeaveFlow) {
+    await expect(this.page.getByRole('dialog')).toBeHidden();
+  }
 });
 
 When('システムが従業員 {string} の日付 {string} の勤怠レコードを取得する',
@@ -150,6 +156,10 @@ Then('勤怠情報が正常に保存される', async function (this: World) {
 });
 
 Then('保存成功メッセージが表示される', async function (this: World) {
+  if (this.context.isLeaveFlow) {
+    await expect(this.page.getByTestId('page-success-message')).toContainText('休暇情報が正常に保存されました');
+    return;
+  }
   await expect(this.page.getByTestId('success-message')).toContainText('勤怠情報が正常に保存されました');
 });
 

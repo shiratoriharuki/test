@@ -87,6 +87,18 @@ export const getAttendanceByDate = async (
   return readJson<AttendanceRecord>(response)
 }
 
+/**
+ * 特定日の休暇レコードを削除する
+ */
+export const deleteAttendance = async (employeeId: string, date: string): Promise<void> => {
+  const response = await requestApi(`${API_BASE_URL}/${employeeId}/${date}`, {
+    method: 'DELETE',
+  })
+  if (response.status !== 204) {
+    throw await readError(response)
+  }
+}
+
 const requestApi = (url: string, init?: RequestInit): Promise<Response> => request(url, init)
 
 /**

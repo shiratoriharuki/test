@@ -29,6 +29,10 @@ import java.util.regex.Pattern;
 public class AttendanceService {
 
     private static final Pattern TIME_PATTERN = Pattern.compile("^([01][0-9]|2[0-3]):[0-5][0-9]$");
+    private static final List<String> UC004_LEAVE_STATUSES = List.of(
+            "SICK_LEAVE", "PERSONAL_LEAVE", "BUSINESS_TRIP");
+    private static final List<String> ATTENDANCE_STATUSES = List.of(
+            "WORK", "PAID_LEAVE", "SICK_LEAVE", "UNPAID_LEAVE", "PERSONAL_LEAVE", "BUSINESS_TRIP");
     private static final DateTimeFormatter RESPONSE_TIME_FORMAT = DateTimeFormatter.ofPattern("HH:mm:ss");
     private static final DateTimeFormatter RESPONSE_TIMESTAMP_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss");
 
@@ -47,6 +51,11 @@ public class AttendanceService {
 
         LocalDate attendanceDate = parseDate(request.getAttendanceDate());
         String status = isBlank(request.getStatus()) ? "WORK" : request.getStatus();
+        if (!ATTENDANCE_STATUSES.contains(status)) {
+            throw validationError("INVALID_ATTENDANCE_STATUS", "選択された休暇種別が正しくありません",
+                    "status", status, "定義済みの勤怠ステータスではありません");
+        }
+
         LocalTime clockInTime = null;
         LocalTime clockOutTime = null;
 
@@ -54,19 +63,61 @@ public class AttendanceService {
             validateTimes(request.getClockInTime(), request.getClockOutTime());
             clockInTime = LocalTime.parse(request.getClockInTime());
             clockOutTime = LocalTime.parse(request.getClockOutTime());
+        } else if (request.getClockInTime() != null || request.getClockOutTime() != null) {
+            throw validationError("INVALID_LEAVE_TIMES", "休暇登録では出勤時刻と退勤時刻を指定できません",
+                    request.getClockInTime() != null ? "clockInTime" : "clockOutTime",
+                    request.getClockInTime() != null ? request.getClockInTime() : request.getClockOutTime(),
+                    "休暇時刻は両方nullである必要があります");
         }
 
-        AttendanceRecord record = attendanceRecordRepository
-                .findByEmployeeIdAndAttendanceDate(request.getEmployeeId(), attendanceDate)
-                .orElseGet(AttendanceRecord::new);
+        Optional<AttendanceRecord> existingRecord = attendanceRecordRepository
+                .findByEmployeeIdAndAttendanceDate(request.getEmployeeId(), attendanceDate);
+        if (!"WORK".equals(status) && existingRecord
+                .filter(record -> "WORK".equals(record.getStatus()))
+                .isPresent()) {
+            throw new AttendanceApiException(
+                    HttpStatus.CONFLICT,
+                    "WORK_RECORD_CONFLICT",
+                    "対象日に勤務記録が存在するため、休暇として登録できません",
+                    Map.of("employeeId", request.getEmployeeId(), "attendanceDate", attendanceDate.toString()));
+        }
+
+        AttendanceRecord record = existingRecord.orElseGet(AttendanceRecord::new);
         record.setEmployeeId(request.getEmployeeId());
         record.setAttendanceDate(attendanceDate);
         record.setClockInTime(clockInTime);
         record.setClockOutTime(clockOutTime);
         record.setStatus(status);
-        record.setNotes(request.getNotes());
+        String notes = request.getNotes();
+        if (!"WORK".equals(status) && isBlank(notes)) {
+            notes = null;
+        }
+        record.setNotes(notes);
 
         return toResponse(attendanceRecordRepository.save(record));
+    }
+
+    /** UC004で扱う休暇レコードを削除する */
+    public void deleteLeave(String employeeId, String date) {
+        LocalDate attendanceDate = parseDate(date);
+        AttendanceRecord record = attendanceRecordRepository
+                .findByEmployeeIdAndAttendanceDate(employeeId, attendanceDate)
+                .orElseThrow(() -> new AttendanceApiException(
+                        HttpStatus.NOT_FOUND,
+                        "NOT_FOUND",
+                        "休暇レコードが見つかりません。最新の状態を確認してください",
+                        Map.of("employeeId", employeeId, "date", date)));
+
+        if (!UC004_LEAVE_STATUSES.contains(record.getStatus())) {
+            throw new AttendanceApiException(
+                    HttpStatus.CONFLICT,
+                    "ATTENDANCE_RECORD_CONFLICT",
+                    "対象レコードは休暇ではないため削除できません",
+                    Map.of("employeeId", employeeId, "date", date, "status",
+                            record.getStatus() == null ? "" : record.getStatus()));
+        }
+
+        attendanceRecordRepository.delete(record);
     }
 
     /** 従業員IDと日付で勤怠レコードを取得する */

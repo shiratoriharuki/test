@@ -5,6 +5,7 @@ import com.attendance.dto.AttendanceResponse;
 import com.attendance.entity.AttendanceRecord;
 import com.attendance.exception.AttendanceApiException;
 import com.attendance.repository.AttendanceRecordRepository;
+import org.springframework.http.HttpStatus;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -24,6 +25,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.never;
 
 /**
  * 勤怠サービステスト
@@ -56,6 +58,177 @@ class AttendanceServiceTest {
         assertEquals("18:00:00", response.getClockOutTime());
         assertEquals("WORK", response.getStatus());
         verify(attendanceRecordRepository).save(any(AttendanceRecord.class));
+    }
+
+    @Test
+    void savesSupportedLeaveStatusesWithNullTimesAndOptionalNotes() {
+        when(attendanceRecordRepository.findByEmployeeIdAndAttendanceDate("EMP001", LocalDate.parse("2025-01-15")))
+                .thenReturn(Optional.empty());
+        when(attendanceRecordRepository.save(any(AttendanceRecord.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        for (String status : List.of("SICK_LEAVE", "PERSONAL_LEAVE", "BUSINESS_TRIP")) {
+            AttendanceRequest request = request(null, null);
+            request.setStatus(status);
+            request.setNotes("   ");
+
+            AttendanceResponse response = attendanceService.saveAttendance(request);
+
+            assertEquals(status, response.getStatus());
+            Assertions.assertNull(response.getClockInTime());
+            Assertions.assertNull(response.getClockOutTime());
+            Assertions.assertNull(response.getNotes());
+        }
+    }
+
+    @Test
+    void savesLeaveWithNotesOnAFutureDate() {
+        when(attendanceRecordRepository.findByEmployeeIdAndAttendanceDate(
+                "EMP001", LocalDate.parse("2099-01-15")))
+                .thenReturn(Optional.empty());
+        when(attendanceRecordRepository.save(any(AttendanceRecord.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        AttendanceRequest request = request(null, null);
+        request.setAttendanceDate("2099-01-15");
+        request.setStatus("SICK_LEAVE");
+        request.setNotes("風邪のため休暇");
+
+        AttendanceResponse response = attendanceService.saveAttendance(request);
+
+        assertEquals("2099-01-15", response.getAttendanceDate());
+        assertEquals("SICK_LEAVE", response.getStatus());
+        assertEquals("風邪のため休暇", response.getNotes());
+        Assertions.assertNull(response.getClockInTime());
+        Assertions.assertNull(response.getClockOutTime());
+    }
+
+    @Test
+    void updatesAnExistingLeaveRecord() {
+        AttendanceRecord existing = new AttendanceRecord();
+        existing.setId(8L);
+        existing.setEmployeeId("EMP001");
+        existing.setAttendanceDate(LocalDate.parse("2025-01-15"));
+        existing.setStatus("SICK_LEAVE");
+        existing.setNotes("風邪");
+        when(attendanceRecordRepository.findByEmployeeIdAndAttendanceDate("EMP001", LocalDate.parse("2025-01-15")))
+                .thenReturn(Optional.of(existing));
+        when(attendanceRecordRepository.save(any(AttendanceRecord.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        AttendanceRequest request = request(null, null);
+        request.setStatus("PERSONAL_LEAVE");
+        request.setNotes("私用に変更");
+
+        AttendanceResponse response = attendanceService.saveAttendance(request);
+
+        assertEquals(8L, response.getId());
+        assertEquals("PERSONAL_LEAVE", response.getStatus());
+        assertEquals("私用に変更", response.getNotes());
+        verify(attendanceRecordRepository).save(existing);
+    }
+
+    @Test
+    void rejectsLeaveRegistrationWhenWorkRecordExists() {
+        AttendanceRecord existing = record("2025-01-15", "09:00", "18:00");
+        when(attendanceRecordRepository.findByEmployeeIdAndAttendanceDate("EMP001", LocalDate.parse("2025-01-15")))
+                .thenReturn(Optional.of(existing));
+        AttendanceRequest request = request(null, null);
+        request.setStatus("SICK_LEAVE");
+
+        AttendanceApiException exception = assertThrows(
+                AttendanceApiException.class, () -> attendanceService.saveAttendance(request));
+
+        assertEquals(HttpStatus.CONFLICT, exception.getStatus());
+        assertEquals("WORK_RECORD_CONFLICT", exception.getError());
+        verify(attendanceRecordRepository, never()).save(any(AttendanceRecord.class));
+    }
+
+    @Test
+    void rejectsUnsupportedLeaveStatusAndSpecifiedLeaveTimes() {
+        AttendanceRequest unknownStatus = request(null, null);
+        unknownStatus.setStatus("OTHER");
+        AttendanceApiException statusException = assertThrows(
+                AttendanceApiException.class, () -> attendanceService.saveAttendance(unknownStatus));
+        assertEquals("INVALID_ATTENDANCE_STATUS", statusException.getError());
+
+        for (AttendanceRequest leaveWithTime : List.of(request("09:00", null), request(null, "18:00"))) {
+            leaveWithTime.setStatus("BUSINESS_TRIP");
+            AttendanceApiException timeException = assertThrows(
+                    AttendanceApiException.class, () -> attendanceService.saveAttendance(leaveWithTime));
+            assertEquals("INVALID_LEAVE_TIMES", timeException.getError());
+        }
+        verifyNoInteractions(attendanceRecordRepository);
+    }
+
+    @Test
+    void deletesExistingUc004LeaveRecord() {
+        AttendanceRecord existing = new AttendanceRecord();
+        existing.setEmployeeId("EMP001");
+        existing.setAttendanceDate(LocalDate.parse("2025-01-15"));
+        existing.setStatus("BUSINESS_TRIP");
+        when(attendanceRecordRepository.findByEmployeeIdAndAttendanceDate("EMP001", LocalDate.parse("2025-01-15")))
+                .thenReturn(Optional.of(existing));
+
+        attendanceService.deleteLeave("EMP001", "2025-01-15");
+
+        verify(attendanceRecordRepository).delete(existing);
+    }
+
+    @Test
+    void rejectsDeletingMissingOrNonLeaveRecords() {
+        when(attendanceRecordRepository.findByEmployeeIdAndAttendanceDate("EMP001", LocalDate.parse("2025-01-15")))
+                .thenReturn(Optional.empty());
+        AttendanceApiException missing = assertThrows(
+                AttendanceApiException.class, () -> attendanceService.deleteLeave("EMP001", "2025-01-15"));
+        assertEquals(HttpStatus.NOT_FOUND, missing.getStatus());
+        assertEquals("NOT_FOUND", missing.getError());
+
+        AttendanceRecord work = record("2025-01-15", "09:00", "18:00");
+        when(attendanceRecordRepository.findByEmployeeIdAndAttendanceDate("EMP001", LocalDate.parse("2025-01-15")))
+                .thenReturn(Optional.of(work));
+        AttendanceApiException conflict = assertThrows(
+                AttendanceApiException.class, () -> attendanceService.deleteLeave("EMP001", "2025-01-15"));
+        assertEquals(HttpStatus.CONFLICT, conflict.getStatus());
+        assertEquals("ATTENDANCE_RECORD_CONFLICT", conflict.getError());
+        verify(attendanceRecordRepository, never()).delete(any(AttendanceRecord.class));
+    }
+
+    @Test
+    void deletesOnlyUc004LeaveTypes() {
+        for (String status : List.of("SICK_LEAVE", "PERSONAL_LEAVE", "BUSINESS_TRIP")) {
+            AttendanceRecord leave = new AttendanceRecord();
+            leave.setEmployeeId("EMP001");
+            leave.setAttendanceDate(LocalDate.parse("2025-01-15"));
+            leave.setStatus(status);
+            when(attendanceRecordRepository.findByEmployeeIdAndAttendanceDate(
+                    "EMP001", LocalDate.parse("2025-01-15")))
+                    .thenReturn(Optional.of(leave));
+
+            attendanceService.deleteLeave("EMP001", "2025-01-15");
+
+            verify(attendanceRecordRepository).delete(leave);
+        }
+    }
+
+    @Test
+    void rejectsDeletingOtherLeaveTypesAndInvalidDates() {
+        AttendanceRecord paidLeave = new AttendanceRecord();
+        paidLeave.setEmployeeId("EMP001");
+        paidLeave.setAttendanceDate(LocalDate.parse("2025-01-15"));
+        paidLeave.setStatus("PAID_LEAVE");
+        when(attendanceRecordRepository.findByEmployeeIdAndAttendanceDate(
+                "EMP001", LocalDate.parse("2025-01-15")))
+                .thenReturn(Optional.of(paidLeave));
+
+        AttendanceApiException conflict = assertThrows(
+                AttendanceApiException.class, () -> attendanceService.deleteLeave("EMP001", "2025-01-15"));
+        assertEquals(HttpStatus.CONFLICT, conflict.getStatus());
+        assertEquals("ATTENDANCE_RECORD_CONFLICT", conflict.getError());
+
+        AttendanceApiException invalidDate = assertThrows(
+                AttendanceApiException.class, () -> attendanceService.deleteLeave("EMP001", "2025-02-30"));
+        assertEquals(HttpStatus.BAD_REQUEST, invalidDate.getStatus());
+        assertEquals("INVALID_DATE_FORMAT", invalidDate.getError());
+        verify(attendanceRecordRepository, never()).delete(any(AttendanceRecord.class));
     }
 
     @Test
@@ -148,18 +321,33 @@ class AttendanceServiceTest {
     @Test
     void getAttendanceByDateReturnsSavedRecord() {
         AttendanceRecord record = new AttendanceRecord();
+        record.setId(5L);
         record.setEmployeeId("EMP001");
         record.setAttendanceDate(LocalDate.parse("2025-01-15"));
-        record.setClockInTime(LocalTime.parse("09:00"));
-        record.setClockOutTime(LocalTime.parse("18:00"));
+        record.setStatus("PERSONAL_LEAVE");
+        record.setNotes("私用のため");
         when(attendanceRecordRepository.findByEmployeeIdAndAttendanceDate(eq("EMP001"), any(LocalDate.class)))
                 .thenReturn(Optional.of(record));
 
         Optional<AttendanceResponse> response = attendanceService.getAttendanceByDate("EMP001", "2025-01-15");
 
         Assertions.assertTrue(response.isPresent());
-        assertEquals("09:00:00", response.orElseThrow().getClockInTime());
-        assertEquals("18:00:00", response.orElseThrow().getClockOutTime());
+        assertEquals("PERSONAL_LEAVE", response.orElseThrow().getStatus());
+        assertEquals("私用のため", response.orElseThrow().getNotes());
+        Assertions.assertNull(response.orElseThrow().getClockInTime());
+        Assertions.assertNull(response.orElseThrow().getClockOutTime());
+        assertEquals("2025-01-15", response.orElseThrow().getAttendanceDate());
+    }
+
+    @Test
+    void getAttendanceByDateReturnsEmptyWhenRecordDoesNotExist() {
+        when(attendanceRecordRepository.findByEmployeeIdAndAttendanceDate(
+                "EMP001", LocalDate.parse("2025-01-15")))
+                .thenReturn(Optional.empty());
+
+        Optional<AttendanceResponse> response = attendanceService.getAttendanceByDate("EMP001", "2025-01-15");
+
+        Assertions.assertTrue(response.isEmpty());
     }
 
     @Test

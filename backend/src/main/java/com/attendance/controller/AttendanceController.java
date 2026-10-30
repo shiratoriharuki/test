@@ -45,6 +45,15 @@ public class AttendanceController {
                         java.util.Map.of("employeeId", employeeId, "date", date)));
     }
 
+    /** UC004の休暇レコードを削除する */
+    @DeleteMapping("/{employeeId}/{date}")
+    public ResponseEntity<Void> deleteLeave(
+            @PathVariable String employeeId,
+            @PathVariable String date) {
+        attendanceService.deleteLeave(employeeId, date);
+        return ResponseEntity.noContent().build();
+    }
+
     /**
      * 従業員の勤怠レコード一覧を取得する
      * TODO: REQ-UC002 - 勤怠レコード一覧取得APIの実装

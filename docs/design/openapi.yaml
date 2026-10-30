@@ -101,7 +101,18 @@ paths:
         - 出勤時刻は退勤時刻より前であること（同時刻は不可）
         - 未来日付も許容する
         - 検証の優先順位: 形式不正 → 未入力 → 前後関係
-        - 休暇（UC004）の詳細は REQ-UC004 のローレベル設計で定義する
+
+        **REQ-UC004（休暇登録）の仕様**:
+        - `status` は `SICK_LEAVE`、`PERSONAL_LEAVE`、`BUSINESS_TRIP` のいずれかを指定する
+        - 休暇の場合、`clockInTime` / `clockOutTime` は両方 `null` とし、`notes` は任意（未入力は `null`）
+        - 保存は従業員ID＋勤怠日をキーにした upsert とし、既存の休暇レコードを更新する
+        - 同じ日付に `WORK` レコードが存在する場合は上書きせず、409 `WORK_RECORD_CONFLICT` を返す（本仕様追加に伴いバックエンド実装が必要）
+        - 未来日付も許容する
+
+        **UC004の画面利用エンドポイント**:
+        - SCR-003の初期表示: `GET /api/attendance/{employeeId}/{date}`
+        - SCR-003の新規登録・更新: `POST /api/attendance`
+        - SCR-003の削除確認後: `DELETE /api/attendance/{employeeId}/{date}`（追加設計。バックエンド未実装）
       operationId: saveAttendance
       requestBody:
         required: true
@@ -118,6 +129,33 @@ paths:
                   clockInTime: "09:00"
                   clockOutTime: "18:00"
                   status: "WORK"
+              sickLeave:
+                summary: Sick Leave の登録（任意メモあり）
+                value:
+                  employeeId: "EMP001"
+                  attendanceDate: "2025-01-15"
+                  clockInTime: null
+                  clockOutTime: null
+                  status: "SICK_LEAVE"
+                  notes: "風邪のため休暇"
+              personalLeave:
+                summary: Personal Leave の登録（メモなし）
+                value:
+                  employeeId: "EMP001"
+                  attendanceDate: "2025-01-16"
+                  clockInTime: null
+                  clockOutTime: null
+                  status: "PERSONAL_LEAVE"
+                  notes: null
+              businessTrip:
+                summary: Business Trip の登録
+                value:
+                  employeeId: "EMP001"
+                  attendanceDate: "2025-01-17"
+                  clockInTime: null
+                  clockOutTime: null
+                  status: "BUSINESS_TRIP"
+                  notes: "大阪出張"
       responses:
         '200':
           description: 勤怠レコード保存成功（新規作成・更新とも）
@@ -125,16 +163,31 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AttendanceRecord'
-              example:
-                id: 1
-                employeeId: "EMP001"
-                attendanceDate: "2025-01-15"
-                clockInTime: "09:00:00"
-                clockOutTime: "18:00:00"
-                status: "WORK"
-                notes: null
-                createdAt: "2025-01-15T09:00:00Z"
-                updatedAt: "2025-01-15T09:00:00Z"
+              examples:
+                work:
+                  summary: 勤務時間の保存結果
+                  value:
+                    id: 1
+                    employeeId: "EMP001"
+                    attendanceDate: "2025-01-15"
+                    clockInTime: "09:00:00"
+                    clockOutTime: "18:00:00"
+                    status: "WORK"
+                    notes: null
+                    createdAt: "2025-01-15T09:00:00Z"
+                    updatedAt: "2025-01-15T09:00:00Z"
+                leave:
+                  summary: 休暇の保存結果
+                  value:
+                    id: 2
+                    employeeId: "EMP001"
+                    attendanceDate: "2025-01-15"
+                    clockInTime: null
+                    clockOutTime: null
+                    status: "SICK_LEAVE"
+                    notes: "風邪のため休暇"
+                    createdAt: "2025-01-15T09:00:00Z"
+                    updatedAt: "2025-01-15T09:00:00Z"
         '400':
           description: バリデーションエラー
           content:
@@ -172,6 +225,42 @@ paths:
                       field: "clockOutTime"
                       rejectedValue: null
                       reason: "必須項目です"
+                invalidStatus:
+                  summary: 未対応の勤怠ステータス（ERR03005）
+                  value:
+                    error: "INVALID_ATTENDANCE_STATUS"
+                    message: "休暇種別が不正です"
+                    timestamp: "2025-01-15T10:00:00Z"
+                    details:
+                      field: "status"
+                      rejectedValue: "OTHER"
+                      reason: "定義済みの勤怠ステータスではありません"
+                invalidLeaveTimes:
+                  summary: 休暇に出退勤時刻が指定された（ERR03006）
+                  value:
+                    error: "INVALID_LEAVE_TIMES"
+                    message: "休暇登録では出勤時刻と退勤時刻を指定できません"
+                    timestamp: "2025-01-15T10:00:00Z"
+                    details:
+                      field: "clockInTime"
+                      rejectedValue: "09:00"
+                      reason: "休暇時刻は両方nullである必要があります"
+        '409':
+          description: |
+            同一従業員・日付の既存レコードと競合（ERR02001）。
+            休暇登録時に同日の WORK レコードを休暇情報で上書きしない。
+            この応答を有効にするにはバックエンド実装の追加が必要。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "WORK_RECORD_CONFLICT"
+                message: "対象日に勤務記録が存在するため、休暇として登録できません"
+                timestamp: "2025-01-15T10:00:00Z"
+                details:
+                  employeeId: "EMP001"
+                  attendanceDate: "2025-01-15"
         '500':
           description: 予期しないエラー（ERR99001）
           content:
@@ -190,7 +279,7 @@ paths:
       summary: 特定日の勤怠レコード取得
       description: |
         指定した従業員の指定日の勤怠レコードを取得する
-        関連要件: UC003（勤務時間入力）
+        関連要件: UC003（勤務時間入力）, UC004（休暇登録）
       operationId: getAttendanceByDate
       parameters:
         - name: employeeId
@@ -198,6 +287,7 @@ paths:
           required: true
           schema:
             type: string
+            pattern: '^EMP[0-9]{3}$'
           description: 従業員ID
         - name: date
           in: path
@@ -205,26 +295,41 @@ paths:
           schema:
             type: string
             format: date
-          description: 勤怠日（YYYY-MM-DD形式）
+          description: 勤怠日（YYYY-MM-DD形式。未来日付も許容）
       responses:
         '200':
-          description: 勤怠レコード取得成功（出勤時刻・退勤時刻を含む）
+          description: 勤怠レコード取得成功。勤務・休暇を問わず対象日の全項目を返す
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/AttendanceRecord'
-              example:
-                id: 1
-                employeeId: "EMP001"
-                attendanceDate: "2025-01-15"
-                clockInTime: "09:00:00"
-                clockOutTime: "18:00:00"
-                status: "WORK"
-                notes: null
-                createdAt: "2025-01-15T09:00:00Z"
-                updatedAt: "2025-01-15T09:00:00Z"
+              examples:
+                work:
+                  summary: 勤怠レコード
+                  value:
+                    id: 1
+                    employeeId: "EMP001"
+                    attendanceDate: "2025-01-15"
+                    clockInTime: "09:00:00"
+                    clockOutTime: "18:00:00"
+                    status: "WORK"
+                    notes: null
+                    createdAt: "2025-01-15T09:00:00Z"
+                    updatedAt: "2025-01-15T09:00:00Z"
+                leave:
+                  summary: 休暇レコード
+                  value:
+                    id: 2
+                    employeeId: "EMP001"
+                    attendanceDate: "2025-01-16"
+                    clockInTime: null
+                    clockOutTime: null
+                    status: "PERSONAL_LEAVE"
+                    notes: null
+                    createdAt: "2025-01-16T09:00:00Z"
+                    updatedAt: "2025-01-16T09:00:00Z"
         '400':
-          description: 日付形式が不正（YYYY-MM-DD 以外）
+          description: 従業員IDまたは日付形式が不正（date は YYYY-MM-DD 以外）
           content:
             application/json:
               schema:
@@ -236,7 +341,7 @@ paths:
         '404':
           description: |
             勤怠レコードが見つからない。
-            勤務時間入力フォーム（SCR-002）では、404 を「未登録」として扱い空フォームを表示する（エラー表示なし）
+            SCR-002 / SCR-003 は、404 を「未登録」として扱い新規登録用の空フォームを表示する（エラー表示なし）
           content:
             application/json:
               schema:
@@ -244,6 +349,88 @@ paths:
               example:
                 error: "NOT_FOUND"
                 message: "勤怠レコードが見つかりません"
+                timestamp: "2025-01-15T10:00:00Z"
+        '500':
+          description: 予期しないエラー（ERR99001）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "INTERNAL_SERVER_ERROR"
+                message: "予期しないエラーが発生しました。システム管理者に連絡してください。"
+                timestamp: "2025-01-15T10:00:00Z"
+    delete:
+      tags:
+        - attendance
+      summary: 休暇レコード削除
+      description: |
+        指定した従業員・日付の休暇レコードを削除する。
+        削除対象は `SICK_LEAVE`、`PERSONAL_LEAVE`、`BUSINESS_TRIP` のいずれかであり、
+        `WORK` レコードを削除してはならない。
+        関連要件: REQ-UC004（休暇登録）
+
+        本エンドポイントはUC004のための追加設計であり、現行バックエンドには未実装。
+      operationId: deleteLeaveByDate
+      parameters:
+        - name: employeeId
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^EMP[0-9]{3}$'
+          description: 従業員ID（認証実装までは EMP001 固定）
+          example: EMP001
+        - name: date
+          in: path
+          required: true
+          schema:
+            type: string
+            format: date
+          description: 勤怠日（YYYY-MM-DD形式）
+          example: "2025-01-15"
+      responses:
+        '204':
+          description: 休暇レコード削除成功（レスポンスボディなし）
+        '400':
+          description: 従業員IDまたは日付形式が不正
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "INVALID_DATE_FORMAT"
+                message: "日付の形式が不正です"
+                timestamp: "2025-01-15T10:00:00Z"
+        '404':
+          description: 対象の休暇レコードが存在しない（ERR02003）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "NOT_FOUND"
+                message: "休暇レコードが見つかりません"
+                timestamp: "2025-01-15T10:00:00Z"
+        '409':
+          description: 対象日に休暇以外の勤怠レコードが存在するため削除できない（ERR02002）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "ATTENDANCE_RECORD_CONFLICT"
+                message: "対象レコードは休暇ではないため削除できません"
+                timestamp: "2025-01-15T10:00:00Z"
+        '500':
+          description: 予期しないエラー（ERR99001）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "INTERNAL_SERVER_ERROR"
+                message: "予期しないエラーが発生しました。システム管理者に連絡してください。"
                 timestamp: "2025-01-15T10:00:00Z"
 
   /api/attendance/{employeeId}:
@@ -428,13 +615,17 @@ components:
           example: "18:00:00"
         status:
           type: string
-          enum: [WORK, PAID_LEAVE, SICK_LEAVE, UNPAID_LEAVE]
+          enum: [WORK, PAID_LEAVE, SICK_LEAVE, UNPAID_LEAVE, PERSONAL_LEAVE, BUSINESS_TRIP]
           description: |
             勤怠ステータス
             - WORK: 出勤
             - PAID_LEAVE: 有給休暇
             - SICK_LEAVE: 病欠
             - UNPAID_LEAVE: 無給休暇
+            - PERSONAL_LEAVE: 私用休暇（REQ-UC004）
+            - BUSINESS_TRIP: 出張（REQ-UC004）
+            REQ-UC004の画面表示値 Sick Leave / Personal Leave / Business Trip は、
+            それぞれ SICK_LEAVE / PERSONAL_LEAVE / BUSINESS_TRIP に対応する。
           example: "WORK"
         notes:
           type: string
@@ -471,28 +662,38 @@ components:
           example: "2025-01-15"
         clockInTime:
           type: string
+          nullable: true
           pattern: '^([01][0-9]|2[0-3]):[0-5][0-9]$'
           description: |
             出勤時刻（HH:MM形式）
-            status が WORK の場合は必須。clockOutTime より前であること
+            status が WORK の場合は必須で、clockOutTime より前であること。
+            status が休暇（PAID_LEAVE / SICK_LEAVE / UNPAID_LEAVE / PERSONAL_LEAVE / BUSINESS_TRIP）の場合は null。
           example: "09:00"
         clockOutTime:
           type: string
+          nullable: true
           pattern: '^([01][0-9]|2[0-3]):[0-5][0-9]$'
           description: |
             退勤時刻（HH:MM形式）
-            status が WORK の場合は必須
+            status が WORK の場合は必須。
+            status が休暇（PAID_LEAVE / SICK_LEAVE / UNPAID_LEAVE / PERSONAL_LEAVE / BUSINESS_TRIP）の場合は null。
           example: "18:00"
         status:
           type: string
-          enum: [WORK, PAID_LEAVE, SICK_LEAVE, UNPAID_LEAVE]
+          enum: [WORK, PAID_LEAVE, SICK_LEAVE, UNPAID_LEAVE, PERSONAL_LEAVE, BUSINESS_TRIP]
           default: WORK
-          description: 勤怠ステータス。省略時は WORK
+          description: |
+            勤怠ステータス。省略時は WORK。
+            UC004では SICK_LEAVE（Sick Leave）、PERSONAL_LEAVE（Personal Leave）、
+            BUSINESS_TRIP（Business Trip）のいずれかを明示する。
+            休暇ステータスの場合、clockInTime と clockOutTime は両方 null とする。
           example: "WORK"
         notes:
           type: string
           nullable: true
-          description: 備考（休暇登録で使用。勤務時間入力では未使用）
+          description: |
+            備考・休暇メモ（任意）。未入力は null とする。
+            UC004ではSick Leave、Personal Leave、Business Tripの補足メモに使用する。
 
     ErrorResponse:
       type: object
@@ -506,7 +707,9 @@ components:
           type: string
           description: |
             エラーコード
-            例: INVALID_TIME_ORDER, INVALID_TIME_FORMAT, REQUIRED_TIME, INVALID_DATE_FORMAT, NOT_FOUND, INTERNAL_SERVER_ERROR
+            例: INVALID_TIME_ORDER, INVALID_TIME_FORMAT, REQUIRED_TIME, INVALID_DATE_FORMAT,
+            INVALID_ATTENDANCE_STATUS, INVALID_LEAVE_TIMES, WORK_RECORD_CONFLICT,
+            ATTENDANCE_RECORD_CONFLICT, NOT_FOUND, INTERNAL_SERVER_ERROR
           example: "Invalid input"
         message:
           type: string
@@ -525,4 +728,3 @@ components:
             field: "clockInTime"
             rejectedValue: "25:00:00"
             reason: "時刻の形式が不正です"
-

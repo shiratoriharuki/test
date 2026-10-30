@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import Calendar from '../components/Calendar'
+import LeaveForm from '../components/LeaveForm'
 import WorkTimeForm from '../components/WorkTimeForm'
 
 /**
@@ -10,10 +11,13 @@ import WorkTimeForm from '../components/WorkTimeForm'
 const CalendarPage: React.FC = () => {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const [isWorkTimeFormOpen, setIsWorkTimeFormOpen] = useState(false)
+  const [isLeaveFormOpen, setIsLeaveFormOpen] = useState(false)
+  const [successMessage, setSuccessMessage] = useState('')
 
   // 日付選択時のハンドラー (REQ-UC002)
   const handleDateSelect = (date: Date) => {
     setSelectedDate(date)
+    setSuccessMessage('')
   }
 
   // 日付をフォーマット
@@ -37,23 +41,48 @@ const CalendarPage: React.FC = () => {
               <button 
                 className="btn-work-time"
                 data-testid="btn-work-time"
-                onClick={() => setIsWorkTimeFormOpen(true)}
+                onClick={() => {
+                  setSuccessMessage('')
+                  setIsWorkTimeFormOpen(true)
+                }}
               >
                 勤務時間入力
               </button>
               <button 
                 className="btn-leave"
                 data-testid="btn-leave"
-                disabled
+                onClick={() => {
+                  setSuccessMessage('')
+                  setIsLeaveFormOpen(true)
+                }}
               >
                 休暇登録
               </button>
             </div>
           </div>
         )}
+        {successMessage && (
+          <div className="page-success-message" data-testid="page-success-message" role="status" aria-live="polite">
+            {successMessage}
+          </div>
+        )}
       </main>
       {isWorkTimeFormOpen && selectedDate && (
         <WorkTimeForm selectedDate={selectedDate} onCancel={() => setIsWorkTimeFormOpen(false)} />
+      )}
+      {isLeaveFormOpen && selectedDate && (
+        <LeaveForm
+          selectedDate={selectedDate}
+          onCancel={() => setIsLeaveFormOpen(false)}
+          onSaved={() => {
+            setIsLeaveFormOpen(false)
+            setSuccessMessage('休暇情報が正常に保存されました')
+          }}
+          onDeleted={() => {
+            setIsLeaveFormOpen(false)
+            setSuccessMessage('休暇情報が削除されました')
+          }}
+        />
       )}
     </div>
   )
