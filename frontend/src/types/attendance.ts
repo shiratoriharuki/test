@@ -6,10 +6,10 @@ export interface AttendanceRecord {
   id?: number
   employeeId: string
   attendanceDate: string
-  clockInTime?: string
-  clockOutTime?: string
+  clockInTime?: string | null
+  clockOutTime?: string | null
   status?: string
-  notes?: string
+  notes?: string | null
   createdAt?: string
   updatedAt?: string
 }
@@ -20,8 +20,8 @@ export interface AttendanceRecord {
 export interface AttendanceRequest {
   employeeId: string
   attendanceDate: string
-  clockInTime?: string
-  clockOutTime?: string
+  clockInTime?: string | null
+  clockOutTime?: string | null
   status?: string
-  notes?: string
+  notes?: string | null
 }

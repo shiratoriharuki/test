@@ -7,6 +7,7 @@ let vite
 let validateWorkTime
 let getAttendanceByDate
 let saveAttendance
+let deleteAttendance
 let AttendanceApiError
 let originalFetch
 
@@ -19,7 +20,7 @@ before(async () => {
     server: { middlewareMode: true },
   })
   ;({ validateWorkTime } = await vite.ssrLoadModule('/src/components/attendanceValidation.ts'))
-  ;({ getAttendanceByDate, saveAttendance, AttendanceApiError } = await vite.ssrLoadModule(
+  ;({ getAttendanceByDate, saveAttendance, deleteAttendance, AttendanceApiError } = await vite.ssrLoadModule(
     '/src/services/attendanceService.ts'
   ))
 })
@@ -104,6 +105,30 @@ describe('attendanceService', () => {
     })
 
     assert.equal(await getAttendanceByDate('EMP001', '2025-01-15'), null)
+  })
+
+  it('204の休暇削除応答を正常に処理する', async () => {
+    mockFetch(async (url, init) => {
+      assert.equal(url, '/api/attendance/EMP001/2025-01-15')
+      assert.equal(init.method, 'DELETE')
+      return { status: 204, ok: true }
+    })
+
+    await assert.doesNotReject(deleteAttendance('EMP001', '2025-01-15'))
+  })
+
+  it('休暇削除のAPIエラーを呼び出し元へ返す', async () => {
+    mockFetch(async () => jsonResponse(409, {
+      error: 'ATTENDANCE_RECORD_CONFLICT',
+      message: '対象レコードは休暇ではないため削除できません',
+    }))
+
+    await assert.rejects(
+      deleteAttendance('EMP001', '2025-01-15'),
+      (error) => error instanceof AttendanceApiError
+        && error.status === 409
+        && error.code === 'ATTENDANCE_RECORD_CONFLICT'
+    )
   })
 
   it('400のサーバーメッセージとエラーコードを保持する', async () => {

@@ -80,7 +80,7 @@
 | REQ-UC001 | システム起動   | 完了   | e2e/features/REQ-UC001-システム起動.feature   | -                        |
 | REQ-UC002 | カレンダー操作 | 完了   | e2e/features/REQ-UC002-カレンダー操作.feature | REQ-UC001                |
 | REQ-UC003 | 勤務時間入力   | 実装・試験済 | e2e/features/REQ-UC003-勤務時間入力.feature   | REQ-UC001, REQ-UC002     |
-| REQ-UC004 | 休暇登録       | 未着手 | e2e/features/REQ-UC004-休暇登録.feature       | REQ-UC001, REQ-UC002     |
+| REQ-UC004 | 休暇登録       | 実装・試験完了 | e2e/features/REQ-UC004-休暇登録.feature       | REQ-UC001, REQ-UC002     |
 
 ### REQ-UC003: 勤務時間入力の実装TODO
 
@@ -131,4 +131,4 @@ stateDiagram-v2
 
 ---
 
-**最終更新日**: 2026-10-26
+**最終更新日**: 2026-10-27
